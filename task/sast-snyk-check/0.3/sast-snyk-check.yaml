@@ -71,9 +71,12 @@ spec:
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
         # Only used for testing
-        microdnf install -y 'microdnf-command(copr)'
-        microdnf copr enable copr.devel.redhat.com/@osh/csdiff -y
-        microdnf install -y csdiff
+
+        set -x
+        microdnf install -y wget
+        wget https://coprbe.devel.redhat.com/results/@osh/csdiff/epel-9-x86_64/00116277-csdiff/csdiff-3.4.1.20240829.181928.gf16db5a-1.el9.x86_64.rpm -O /tmp/csdiff.rpm
+        rpm -i /tmp/csdiff.rpm
+        set +x
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
 
