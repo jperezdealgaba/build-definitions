@@ -71,10 +71,9 @@ spec:
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
         # Only used for testing
-        microdnf install -y yum-utils
-        yum install -y 'yum-command(copr)'
-        yum copr enable copr.devel.redhat.com/@osh/csdiff -y
-        yum install -y csdiff
+        dnf5 install -y 'dnf-command(copr)'
+        dnf5 copr enable copr.devel.redhat.com/@osh/csdiff -y
+        dnf5 install -y csdiff
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
 
