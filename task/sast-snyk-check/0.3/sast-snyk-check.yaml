@@ -76,6 +76,9 @@ spec:
         dnf install -y 'dnf-command(copr)'
         dnf copr enable copr.devel.redhat.com/@osh/csdiff -y
         dnf install -y csdiff git python3-file-magic
+        curl -sS https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2015-RH-IT-Root-CA.crt
+        curl -sS https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem
+        update-ca-trust
         set +x
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
