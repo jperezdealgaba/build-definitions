@@ -139,6 +139,9 @@ spec:
         csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
         echo "SECOND FILE"
         cat filtered_sast_snyk_check_out.json
+        csgrep --mode=sarif filtered_sast_snyk_check_out.json > filtered_sast_snyk_check_out.sarif
+        echo "SARIF_FILE"
+        cat filtered_sast_snyk_check_out.sarif
         TEST_OUTPUT=
           parse_test_output $(context.task.name) sarif filtered_sast_snyk_check_out.json  || true
         
