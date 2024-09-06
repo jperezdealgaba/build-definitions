@@ -38,7 +38,7 @@ spec:
     - name: KFP_GIT_URL
       type: string
       description: URL from repository to download known false positives files
-      default: "https://gitlab.cee.redhat.com/jperezde/known-false-positives.git#test-osh-cli"
+      default: "https://gitlab.cee.redhat.com/jperezde/known-false-positives#test-osh-cli"
 
   volumes:
     - name: snyk-secret
