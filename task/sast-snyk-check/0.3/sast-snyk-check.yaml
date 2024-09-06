@@ -115,12 +115,12 @@ spec:
           note="Task $(context.task.name) success: Snyk code test found zero supported files."
           ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
         else
-          # echo "sast-snyk-check test failed because of the following issues:"
+          echo "sast-snyk-check test failed "
           # cat stdout.txt
           # note="Task $(context.task.name) failed: For details, check Tekton task log."
           # ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
         fi
-        echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
+        # echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
         set -x
