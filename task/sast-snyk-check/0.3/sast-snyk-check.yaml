@@ -71,7 +71,6 @@ spec:
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
         # Only used for testing
-        dnf5 install -y 'dnf-command(copr)'
         dnf5 copr enable copr.devel.redhat.com/@osh/csdiff -y
         dnf5 install -y csdiff
         
