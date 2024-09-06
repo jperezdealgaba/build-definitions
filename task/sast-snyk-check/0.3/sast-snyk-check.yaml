@@ -71,8 +71,8 @@ spec:
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
         # Only used for testing
-        dnf5 copr enable copr.devel.redhat.com/@osh/csdiff -y
-        dnf5 install -y csdiff
+        microdnf install --enablerepo copr.devel.redhat.com/@osh/csdiff 
+        microdnf install -y csdiff
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
 
