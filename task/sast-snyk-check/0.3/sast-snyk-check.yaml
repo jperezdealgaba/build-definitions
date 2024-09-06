@@ -106,7 +106,8 @@ spec:
         SKIP_MSG="We found 0 supported files"
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
 
-        # if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
+        if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
+        echo "Snyk scan finished"
         #  TEST_OUTPUT=
         #  parse_test_output $(context.task.name) sarif sast_snyk_check_out.json  || true
 
