@@ -71,7 +71,12 @@ spec:
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
         # Only used for testing
-        microdnf install --enablerepo copr.devel.redhat.com/@osh/csdiff csdiff
+        set -x
+        microdnf install dnf
+        dnf install -y 'dnf-command(copr)'
+        dnf copr enable copr.devel.redhat.com/@osh/csdiff -y
+        dnf install -y csdiff git python3-file-magic
+        set +x
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
 
