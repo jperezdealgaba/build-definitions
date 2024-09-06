@@ -124,7 +124,9 @@ spec:
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
         set -x
+        csgrep --mode=json --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --mode=json --embed-context 3 > sast_snyk_check_out_all_findinds.json
         csgrep --mode=json --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --mode=sarif --embed-context 3 > sast_snyk_check_out_all_findinds.sarif
+        cat sast_snyk_check_out_all_findinds.json
         set +x
 
         echo "Filtering false positives in results files..."
