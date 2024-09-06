@@ -122,6 +122,7 @@ spec:
         fi
         # echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
 
+        echo "START DEBUGGING FILTERING"
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
         set -x
         csgrep --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --embed-context 3 | csgrep --strip-path-prefix="$SOURCE_CODE_DIR"/source/  > sast_snyk_check_out_all_findinds.txt
