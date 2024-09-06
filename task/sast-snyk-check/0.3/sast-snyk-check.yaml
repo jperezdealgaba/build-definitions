@@ -72,7 +72,7 @@ spec:
 
         # Only used for testing
         set -x
-        microdnf install dnf
+        microdnf install dnf -y
         dnf install -y 'dnf-command(copr)'
         dnf copr enable copr.devel.redhat.com/@osh/csdiff -y
         dnf install -y csdiff git python3-file-magic
