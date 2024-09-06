@@ -101,6 +101,8 @@ spec:
         # We do want to expand ARGS (it can be multiple CLI flags, not just one)
         set -x
         snyk code test $ARGS --severity-threshold=$SEVERITY_THRESHOLD "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output=sast_snyk_check_out.json 1>&2>> stdout.txt || SNYK_EXIT_CODE=$?
+        echo "FIRST FILE"
+        cat sast_snyk_check_out.json
         set +x
         test_not_skipped=0
         SKIP_MSG="We found 0 supported files"
@@ -135,6 +137,8 @@ spec:
         echo $KFP_GIT_URL
         csfilter-kfp --version
         csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
+        echo "SECOND FILE"
+        cat filtered_sast_snyk_check_out.json
         TEST_OUTPUT=
           parse_test_output $(context.task.name) sarif filtered_sast_snyk_check_out.json  || true
         
