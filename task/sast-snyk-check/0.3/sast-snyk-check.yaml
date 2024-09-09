@@ -108,24 +108,6 @@ spec:
         SKIP_MSG="We found 0 supported files"
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
 
-        if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
-        echo "Snyk scan finished"
-        #  TEST_OUTPUT=
-        #  parse_test_output $(context.task.name) sarif sast_snyk_check_out.json  || true
-
-        # When the test is skipped, the "SNYK_EXIT_CODE" is 3 and it can also be 3 in some other situation
-        elif [[ "$test_not_skipped" -eq 0 ]]; then
-          note="Task $(context.task.name) success: Snyk code test found zero supported files."
-          ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
-        else
-          echo "sast-snyk-check test failed "
-          # cat stdout.txt
-          # note="Task $(context.task.name) failed: For details, check Tekton task log."
-          # ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
-        fi
-        # echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
-
-        echo "START DEBUGGING FILTERING"
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
         set -x
         csgrep --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --embed-context 3 | csgrep --strip-path-prefix="$SOURCE_CODE_DIR"/source/  > sast_snyk_check_out_all_findinds.txt
@@ -137,18 +119,23 @@ spec:
         echo $KFP_GIT_URL
         csfilter-kfp --version
         csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
-        echo "SECOND FILE"
-        cat filtered_sast_snyk_check_out.json
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > filtered_sast_snyk_check_out.sarif
-        echo "SARIF_FILE"
-        cat filtered_sast_snyk_check_out.sarif
-        TEST_OUTPUT=
-          parse_test_output $(context.task.name) sarif filtered_sast_snyk_check_out.json  || true
         
-        note="Task $(context.task.name) failed: For details, check Tekton task log."
-        ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
-        echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
-        set +x
+        if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
+          cat sast_snyk_check_out.json
+          TEST_OUTPUT=
+          parse_test_output $(context.task.name) sarif filtered_sast_snyk_check_out.json  || true
+
+        # When the test is skipped, the "SNYK_EXIT_CODE" is 3 and it can also be 3 in some other situation
+        elif [[ "$test_not_skipped" -eq 0 ]]; then
+          note="Task $(context.task.name) success: Snyk code test found zero supported files."
+          ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
+        else
+          echo "sast-snyk-check test failed because of the following issues:"
+          #cat stdout.txt
+          note="Task $(context.task.name) failed: For details, check Tekton task log."
+          ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
+        fi
 
     - name: upload
       image: quay.io/konflux-ci/oras:latest@sha256:f4b891ee3038a5f13cd92ff4f473faad5601c2434d1c6b9bccdfc134d9d5f820
