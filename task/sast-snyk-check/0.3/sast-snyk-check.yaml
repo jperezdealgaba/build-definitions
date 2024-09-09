@@ -115,7 +115,6 @@ spec:
         csfilter-kfp --version
         csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
-        cat filtered_sast_snyk_check_out
         
         if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
           cat sast_snyk_check_out.json
