@@ -110,8 +110,6 @@ spec:
         set +x
 
         echo "Filtering false positives in results files..."
-        set -x
-        echo $KFP_GIT_URL
         csfilter-kfp --version
         csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
