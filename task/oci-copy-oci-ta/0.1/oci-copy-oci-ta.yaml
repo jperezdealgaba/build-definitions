@@ -70,12 +70,12 @@ spec:
         name: workdir
   steps:
     - name: use-trusted-artifact
-      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:601e0999ae062e5ee666538d651af7893a75e415b7952c85caa8a4452501029a
+      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:d6f57d97d19008437680190908fe5444cda380f9c77d0e9efde7153720412e05
       args:
         - use
         - $(params.SOURCE_ARTIFACT)=/var/workdir/source
     - name: prepare
-      image: quay.io/konflux-ci/yq:latest@sha256:8524b4f190dba0974242d5b91aef6f89cacb9ee6a38fadbed7fff53524b533f6
+      image: quay.io/konflux-ci/yq:latest@sha256:f758d9a25bc88cc114bfb6137fd4d649db427de5a4217e818b8466ad5bf9255c
       workingDir: /var/workdir
       script: |
         #!/bin/bash
@@ -291,7 +291,7 @@ spec:
           add:
             - SETFCAP
     - name: sbom-generate
-      image: quay.io/konflux-ci/yq:latest@sha256:8524b4f190dba0974242d5b91aef6f89cacb9ee6a38fadbed7fff53524b533f6
+      image: quay.io/konflux-ci/yq:latest@sha256:f758d9a25bc88cc114bfb6137fd4d649db427de5a4217e818b8466ad5bf9255c
       workingDir: /var/workdir
       script: |
         #!/bin/bash
@@ -329,7 +329,7 @@ spec:
         - $(params.IMAGE)
       workingDir: /var/workdir
     - name: report-sbom-url
-      image: quay.io/konflux-ci/yq:latest@sha256:8524b4f190dba0974242d5b91aef6f89cacb9ee6a38fadbed7fff53524b533f6
+      image: quay.io/konflux-ci/yq:latest@sha256:f758d9a25bc88cc114bfb6137fd4d649db427de5a4217e818b8466ad5bf9255c
       workingDir: /var/workdir
       script: |
         #!/bin/bash

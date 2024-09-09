@@ -182,7 +182,7 @@ spec:
     - name: SKIP_UNUSED_STAGES
       value: $(params.SKIP_UNUSED_STAGES)
     - name: BUILDER_IMAGE
-      value: quay.io/konflux-ci/buildah-task:latest@sha256:1301e1a87a44898ab73e5dff8f6ac7499be4cb64eb7300e25d7a20ae266c87d3
+      value: quay.io/konflux-ci/buildah-task:latest@sha256:860a239c5f25376a435a514ae6d53a5c75b1fa492461d17774e9b7cb32d1e275
     - name: PLATFORM
       value: $(params.PLATFORM)
     - name: IMAGE_APPEND_PLATFORM
@@ -203,7 +203,7 @@ spec:
     env:
     - name: COMMIT_SHA
       value: $(params.COMMIT_SHA)
-    image: quay.io/konflux-ci/buildah-task:latest@sha256:1301e1a87a44898ab73e5dff8f6ac7499be4cb64eb7300e25d7a20ae266c87d3
+    image: quay.io/konflux-ci/buildah-task:latest@sha256:860a239c5f25376a435a514ae6d53a5c75b1fa492461d17774e9b7cb32d1e275
     name: build
     script: |-
       #!/bin/bash
@@ -305,14 +305,12 @@ spec:
 
       BUILDAH_ARGS=()
 
-      BASE_IMAGES=$(grep -i '^\s*FROM' "$dockerfile_path" | sed 's/--platform=\S*//' | awk '{print $2}' | (grep -v ^oci-archive: || true))
+      BASE_IMAGES=$(dockerfile-json "$dockerfile_path" | jq -r '.Stages[] | select(.From | .Stage or .Scratch | not) | .BaseName')
       if [ "${HERMETIC}" == "true" ]; then
         BUILDAH_ARGS+=("--pull=never")
         UNSHARE_ARGS="--net"
         for image in $BASE_IMAGES; do
-          if [ "${image}" != "scratch" ]; then
-            unshare -Ufp --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 -- buildah pull $image
-          fi
+          unshare -Ufp --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 -- buildah pull $image
         done
         echo "Build will be executed with network isolation"
       fi
@@ -421,6 +419,8 @@ spec:
 
       container=$(buildah from --pull-never $IMAGE)
       buildah mount $container | tee /shared/container_path
+      # delete symlinks - they may point outside the container rootfs, messing with SBOM scanners
+      find $(cat /shared/container_path) -xtype l -delete
       echo $container > /shared/container_name
 
       # Save the SBOM produced by Cachi2 so it can be merged into the final SBOM later
@@ -430,9 +430,7 @@ spec:
 
       touch /shared/base_images_digests
       for image in $BASE_IMAGES; do
-        if [ "${image}" != "scratch" ]; then
-          buildah images --format '{{ .Name }}:{{ .Tag }}@{{ .Digest }}' --filter reference="$image" >> /shared/base_images_digests
-        fi
+        buildah images --format '{{ .Name }}:{{ .Tag }}@{{ .Digest }}' --filter reference="$image" >> /shared/base_images_digests
       done
 
       # Needed to generate base images SBOM
@@ -486,6 +484,8 @@ spec:
       buildah images
       container=$(buildah from --pull-never "$IMAGE")
       buildah mount "$container" | tee /shared/container_path
+      # delete symlinks - they may point outside the container rootfs, messing with SBOM scanners
+      find $(cat /shared/container_path) -xtype l -delete
       echo $container > /shared/container_name
     securityContext:
       capabilities:
@@ -514,7 +514,7 @@ spec:
       requests:
         cpu: 500m
         memory: 1Gi
-    image: quay.io/redhat-appstudio/syft:v0.105.1@sha256:1910b829997650c696881e5fc2fc654ddf3184c27edb1b2024e9cb2ba51ac431
+    image: registry.access.redhat.com/rh-syft-tech-preview/syft-rhel9:1.4.1@sha256:34d7065427085a31dc4949bd283c001b91794d427e1e4cdf1b21ea4faf9fee3f
     name: sbom-syft-generate
     script: |
       #!/bin/bash
@@ -525,7 +525,6 @@ spec:
       fi
       echo "Running syft on the source directory"
       syft dir:$(workspaces.source.path)/source --output cyclonedx-json=$(workspaces.source.path)/sbom-source.json
-      find $(cat /shared/container_path) -xtype l -delete
       echo "Running syft on the image filesystem"
       syft dir:$(cat /shared/container_path) --output cyclonedx-json=$(workspaces.source.path)/sbom-image.json
     volumeMounts:
@@ -606,7 +605,7 @@ spec:
       requests:
         cpu: "1"
         memory: 1Gi
-    image: quay.io/konflux-ci/buildah-task:latest@sha256:1301e1a87a44898ab73e5dff8f6ac7499be4cb64eb7300e25d7a20ae266c87d3
+    image: quay.io/konflux-ci/buildah-task:latest@sha256:860a239c5f25376a435a514ae6d53a5c75b1fa492461d17774e9b7cb32d1e275
     name: inject-sbom-and-push
     script: |
       #!/bin/bash

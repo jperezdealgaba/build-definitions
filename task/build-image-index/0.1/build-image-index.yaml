@@ -60,7 +60,7 @@ spec:
     - name: STORAGE_DRIVER
       value: $(params.STORAGE_DRIVER)
   steps:
-  - image: quay.io/konflux-ci/buildah-task:latest@sha256:1301e1a87a44898ab73e5dff8f6ac7499be4cb64eb7300e25d7a20ae266c87d3
+  - image: quay.io/konflux-ci/buildah-task:latest@sha256:860a239c5f25376a435a514ae6d53a5c75b1fa492461d17774e9b7cb32d1e275
     # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
     # the cluster will set imagePullPolicy to IfNotPresent
     name: build
@@ -100,7 +100,7 @@ spec:
           TOADD="${TOADD_REPOSITORY}@${TOADD_DIGEST}"
         fi
         if [[ "$ALWAYS_BUILD_INDEX" != "true" ]]; then
-          echo "Skipping image index generation. Returning results for $TOADD"
+          echo "Skipping image index generation. Returning results for $TOADD."
           echo -n "${TOADD_URL}" > "$(results.IMAGE_URL.path)"
           echo -n "${TOADD_DIGEST}" > "$(results.IMAGE_DIGEST.path)"
           echo -n "${TOADD}" > "$(results.IMAGES.path)"

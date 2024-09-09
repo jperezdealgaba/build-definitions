@@ -130,12 +130,12 @@ spec:
           echo -n "" >$(results.CACHI2_ARTIFACT.path)
         fi
     - name: use-trusted-artifact
-      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:601e0999ae062e5ee666538d651af7893a75e415b7952c85caa8a4452501029a
+      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:d6f57d97d19008437680190908fe5444cda380f9c77d0e9efde7153720412e05
       args:
         - use
         - $(params.SOURCE_ARTIFACT)=/var/workdir/source
     - name: sanitize-cachi2-config-file-with-yq
-      image: quay.io/konflux-ci/yq:latest@sha256:8524b4f190dba0974242d5b91aef6f89cacb9ee6a38fadbed7fff53524b533f6
+      image: quay.io/konflux-ci/yq:latest@sha256:f758d9a25bc88cc114bfb6137fd4d649db427de5a4217e818b8466ad5bf9255c
       script: |
         if [ -n "${CONFIG_FILE_CONTENT}" ]; then
           # we need to drop 'goproxy_url' for safety reasons until cachi2 decides what the SBOM
@@ -226,7 +226,7 @@ spec:
         cachi2 --log-level="$LOG_LEVEL" inject-files /var/workdir/cachi2/output \
           --for-output-dir=/cachi2/output
     - name: create-trusted-artifact
-      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:601e0999ae062e5ee666538d651af7893a75e415b7952c85caa8a4452501029a
+      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:d6f57d97d19008437680190908fe5444cda380f9c77d0e9efde7153720412e05
       args:
         - create
         - --store
