@@ -114,12 +114,13 @@ spec:
         echo $KFP_GIT_URL
         csfilter-kfp --version
         csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
-        csgrep --mode=sarif filtered_sast_snyk_check_out.json > filtered_sast_snyk_check_out.sarif
+        csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
+        cat filtered_sast_snyk_check_out
         
         if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
           cat sast_snyk_check_out.json
           TEST_OUTPUT=
-          parse_test_output $(context.task.name) sarif filtered_sast_snyk_check_out.sarif  || true
+          parse_test_output $(context.task.name) sarif sast_snyk_check_out.sarif  || true
 
         # When the test is skipped, the "SNYK_EXIT_CODE" is 3 and it can also be 3 in some other situation
         elif [[ "$test_not_skipped" -eq 0 ]]; then
@@ -127,7 +128,7 @@ spec:
           ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
         else
           echo "sast-snyk-check test failed because of the following issues:"
-          #cat stdout.txt
+          cat stdout.txt
           note="Task $(context.task.name) failed: For details, check Tekton task log."
           ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
         fi
