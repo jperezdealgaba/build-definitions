@@ -47,7 +47,7 @@ spec:
         optional: true
   steps:
     - name: sast-snyk-check
-      image: quay.io/redhat-appstudio/konflux-test:v1.4.5@sha256:801a105ba0f9c7f58f5ba5cde1a3b4404009fbebb1028779ca2c5de211e94940
+      image: quay.io/redhat-appstudio/konflux-test:v1.4.6@sha256:5f298d8d990dfa82023e50029b71b08e19c3c9cedb181dfc4bc86c9ecad8700c
       # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
       # the cluster will set imagePullPolicy to IfNotPresent
       workingDir: $(workspaces.workspace.path)/hacbs/$(context.task.name)
@@ -70,16 +70,9 @@ spec:
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
-        # Only used for testing
-        set -x
-        microdnf install dnf -y
-        dnf install -y 'dnf-command(copr)'
-        dnf copr enable copr.devel.redhat.com/@osh/csdiff -y
-        dnf install -y csdiff git python3-file-magic
         curl -sS https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2015-RH-IT-Root-CA.crt
         curl -sS https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem
         update-ca-trust
-        set +x
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
 
