@@ -38,7 +38,7 @@ spec:
     - name: KFP_GIT_URL
       type: string
       description: URL from repository to download known false positives files
-      default: ""
+      default: "https://gitlab.cee.redhat.com/jperezde/known-false-positives#6f287bf54c77095e5d9c188c21121c712a83a8df"
 
   volumes:
     - name: snyk-secret
