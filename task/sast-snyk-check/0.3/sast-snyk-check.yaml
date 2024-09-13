@@ -98,17 +98,23 @@ spec:
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
-        set -x
         csgrep --mode=json --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --mode=json --embed-context 3 | csgrep --mode=json --strip-path-prefix="$SOURCE_CODE_DIR"/source/  > sast_snyk_check_out_all_findings.json
+        
+        set -x
+        csgrep --mode=evtstat sast_snyk_check_out_all_findings.json
         set +x
-
+        
         # We check if the KFP_GIT_URL variable is set to apply the filters or not
         if [[ -z "${KFP_GIT_URL}" ]]; then
           echo "KFP_GIT_URL variable not defined. False positives won't be filtered"
           mv sast_snyk_check_out_all_findings.json filtered_sast_snyk_check_out.json
         else
           echo "Filtering false positives in results files using csfilter-kfp..."
-          csfilter-kfp --verbose --kfp-git-url=$KFP_GIT_URL sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
+          csfilter-kfp --verbose --kfp-git-url="$KFP_GIT_URL" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
+          echo "Results after filtering..."
+          set -x
+          csgrep --mode=evtstat filtered_sast_snyk_check_out.json
+          set +x
         fi
 
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
