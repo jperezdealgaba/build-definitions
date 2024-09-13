@@ -71,7 +71,6 @@ spec:
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
         # Only used for testing
-        set -x
         microdnf install dnf -y
         dnf install -y 'dnf-command(copr)'
         dnf copr enable copr.devel.redhat.com/@osh/csdiff -y
@@ -79,7 +78,6 @@ spec:
         curl -sS https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2015-RH-IT-Root-CA.crt
         curl -sS https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem
         update-ca-trust
-        set +x
         
         SNYK_TOKEN_PATH="/etc/secrets/snyk_token"
 
@@ -128,7 +126,6 @@ spec:
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
         
         if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
-          cat sast_snyk_check_out.json
           TEST_OUTPUT=
           parse_test_output $(context.task.name) sarif sast_snyk_check_out.sarif  || true
 
@@ -137,8 +134,6 @@ spec:
           note="Task $(context.task.name) success: Snyk code test found zero supported files."
           ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
         else
-          echo "sast-snyk-check test failed because of the following issues:"
-          cat stdout.txt
           note="Task $(context.task.name) failed: For details, check Tekton task log."
           ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
         fi
