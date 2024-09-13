@@ -70,6 +70,9 @@ spec:
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
+        # install additional packages that will be used to process results
+        RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+            dnf install -y csdiff git-core
         curl -sS https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2015-RH-IT-Root-CA.crt
         curl -sS https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem
         update-ca-trust
@@ -100,6 +103,7 @@ spec:
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
         csgrep --mode=json --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --mode=json --embed-context 3 | csgrep --mode=json --strip-path-prefix="$SOURCE_CODE_DIR"/source/  > sast_snyk_check_out_all_findings.json
         
+        echo "Results:"
         set -x
         csgrep --mode=evtstat sast_snyk_check_out_all_findings.json
         set +x
@@ -111,7 +115,7 @@ spec:
         else
           echo "Filtering false positives in results files using csfilter-kfp..."
           csfilter-kfp --verbose --kfp-git-url="$KFP_GIT_URL" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
-          echo "Results after filtering..."
+          echo "Results after filtering:"
           set -x
           csgrep --mode=evtstat filtered_sast_snyk_check_out.json
           set +x
