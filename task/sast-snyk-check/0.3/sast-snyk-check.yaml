@@ -140,7 +140,7 @@ spec:
             CMD+=(--project-nvr="${PROJECT_NVR}")
           fi
 
-          if [[ "${RECORD_EXCLUDED}" == "true" ]]; then
+          if [ "${RECORD_EXCLUDED}" == "true" ]; then
             CMD+=(--record-excluded="${RECORD_EXCLUDED}")
           fi
 
