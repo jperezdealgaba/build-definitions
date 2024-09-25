@@ -238,6 +238,50 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+    - name: sast-coverity-check
+      params:
+        - name: image-digest
+          value: $(tasks.build-container.results.IMAGE_DIGEST)
+        - name: image-url
+          value: $(tasks.build-container.results.IMAGE_URL)
+      runAfter:
+        - coverity-availability-check
+      taskRef:
+        taskRef:
+          # FIXME: This needs testing as it can not be tested on our local instance.
+          name: sast-coverity-check
+          version: "0.1"
+      when:
+        - input: $(params.skip-checks)
+          operator: in
+          values:
+            - "false"
+        - input: $(tasks.coverity-availability-check.results.TASK_OUTPUT)
+          operator: in
+          values: [ "success" ]
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: coverity-availability-check
+      params:
+        - name: image-digest
+          value: $(tasks.build-container.results.IMAGE_DIGEST)
+        - name: image-url
+      value: $(tasks.build-container.results.IMAGE_URL)
+      runAfter:
+        - build-image-index
+      taskRef:
+        # FIXME: This needs testing as it can not be tested on our local instance.
+        name: coverity-availability-check
+        version: "0.1"
+      when:
+        - input: $(params.skip-checks)
+          operator: in
+          values:
+            - "false"
+      workspaces:
+      - name: workspace
+      workspace: workspace
     - name: apply-tags
       runAfter:
         - build-image-index
