@@ -139,9 +139,11 @@ spec:
           if [[ -n "${PROJECT_NVR}" ]]; then
             CMD+=(--project-nvr="${PROJECT_NVR}")
           fi
-          if [ "${RECORD_EXCLUDED}" == "true" ]; then
+
+          if [[ "${RECORD_EXCLUDED}" == "true" ]]; then
             CMD+=(--record-excluded="${RECORD_EXCLUDED}")
           fi
+
           "${CMD[@]}" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
           status=$?
           if [ "$status" -ne 0 ]; then
