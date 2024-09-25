@@ -106,7 +106,7 @@ spec:
         # shellcheck disable=SC2086
         # We do want to expand ARGS (it can be multiple CLI flags, not just one)
         SEVERITY_THRESHOLD="high"
-        if [[$IMP_FINDINGS_ONLY = "false"]]; then
+        if [$IMP_FINDINGS_ONLY == "false"]; then
           SEVERITY_THRESHOLD="low"
         fi
         snyk code test $ARGS --severity-threshold=$SEVERITY_THRESHOLD "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output=sast_snyk_check_out.json 1>&2>> stdout.txt || SNYK_EXIT_CODE=$?
