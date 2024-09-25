@@ -24,12 +24,12 @@ spec:
     - description: Image URL.
       name: image-url
       type: string
-      # In a future 0.2 version of the task, drop the default to make this required
+      # In a future 0.4 version of the task, drop the default to make this required
       default: ""
     - description: Image digest to report findings for.
       name: image-digest
       type: string
-      # In a future 0.2 version of the task, drop the default to make this required
+      # In a future 0.4 version of the task, drop the default to make this required
       default: ""
     - name: SEVERITY_THRESHOLD
       type: string
@@ -38,7 +38,15 @@ spec:
     - name: KFP_GIT_URL
       type: string
       description: URL from repository to download known false positives files
-      default: "https://gitlab.cee.redhat.com/jperezde/known-false-positives#6f287bf54c77095e5d9c188c21121c712a83a8df"
+      default: "" # FIXME: Red Hat internal projects will default to https://gitlab.cee.redhat.com/osh/known-false-positives.git when KONFLUX-4530 is resolved
+    - name: PROJECT_NVR
+      type: string
+      description: Name-Version-Release (NVR) of the scanned project, used to find path exclusions (it is optional)
+      default: ""
+    - name: RECORD_EXCLUDED
+      type: string
+      description: Write excluded records in file. Useful for debugging (it is optional).
+      default: ""
 
   volumes:
     - name: snyk-secret
@@ -47,7 +55,7 @@ spec:
         optional: true
   steps:
     - name: sast-snyk-check
-      image: quay.io/redhat-appstudio/konflux-test:v1.4.6@sha256:5f298d8d990dfa82023e50029b71b08e19c3c9cedb181dfc4bc86c9ecad8700c
+      image: quay.io/redhat-appstudio/konflux-test:v1.4.7@sha256:cf6808a3bd605630a5d9f20595ff7c43f8645c00381219d32f5a11e88fe37072
       # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
       # the cluster will set imagePullPolicy to IfNotPresent
       workingDir: $(workspaces.workspace.path)/hacbs/$(context.task.name)
@@ -64,17 +72,17 @@ spec:
           value: $(params.SEVERITY_THRESHOLD)
         - name: KFP_GIT_URL
           value: $(params.KFP_GIT_URL)
+        - name: PROJECT_NVR
+          value: $(params.PROJECT_NVR)
+        - name: RECORD_EXCLUDED
+          value: $(params.RECORD_EXCLUDED)
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
-        # Only used for testing
-        microdnf install dnf -y
-        dnf install -y 'dnf-command(copr)'
-        dnf copr enable copr.devel.redhat.com/@osh/csdiff -y
-        dnf install -y csdiff git python3-file-magic
+        # Installation of Red Hat certificates for cloning Red Hat internal repositories
         curl -sS https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2015-RH-IT-Root-CA.crt
         curl -sS https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem > /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem
         update-ca-trust
@@ -106,9 +114,7 @@ spec:
         csgrep --mode=json --prepend-path-prefix="$SOURCE_CODE_DIR"/ sast_snyk_check_out.json | csgrep --mode=json --embed-context 3 | csgrep --mode=json --strip-path-prefix="$SOURCE_CODE_DIR"/source/  > sast_snyk_check_out_all_findings.json
         
         echo "Results:"
-        set -x
-        csgrep --mode=evtstat sast_snyk_check_out_all_findings.json
-        set +x
+        (set -x; csgrep --mode=evtstat sast_snyk_check_out_all_findings.json)
         
         # We check if the KFP_GIT_URL variable is set to apply the filters or not
         if [[ -z "${KFP_GIT_URL}" ]]; then
@@ -116,18 +122,38 @@ spec:
           mv sast_snyk_check_out_all_findings.json filtered_sast_snyk_check_out.json
         else
           echo "Filtering false positives in results files using csfilter-kfp..."
-          csfilter-kfp --verbose --kfp-git-url="$KFP_GIT_URL" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
+          
+          CMD=(
+            csfilter-kfp
+            --verbose 
+            --kfp-git-url="${KFP_GIT_URL}"
+          )
+          
+          if [[ -n "${PROJECT_NVR}" ]]; then
+            CMD+=(--project-nvr="${PROJECT_NVR}")
+          fi
+          if [[ "${RECORD_EXCLUDED}" = "true" ]]; then
+            CMD+=(--record-excluded="${RECORD_EXCLUDED}")
+          fi
+          "${CMD[@]}" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Error: failed to filter known false positives" >&2
+            return 1
+          else
+            echo "Message: Succeed to filter known false positives" >&2
+            SCAN_RESULT="filtered_sast_unicode_check_out.json"
+          fi
+        
           echo "Results after filtering:"
-          set -x
-          csgrep --mode=evtstat filtered_sast_snyk_check_out.json
-          set +x
+          (set -x; csgrep --mode=evtstat filtered_sast_snyk_check_out.json)
         fi
 
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
         
         if [[ "$SNYK_EXIT_CODE" -eq 0 ]] || [[ "$SNYK_EXIT_CODE" -eq 1 ]]; then
           TEST_OUTPUT=
-          parse_test_output $(context.task.name) sarif sast_snyk_check_out.sarif  || true
+          parse_test_output '$(context.task.name)' sarif sast_snyk_check_out.sarif  || true
 
         # When the test is skipped, the "SNYK_EXIT_CODE" is 3 and it can also be 3 in some other situation
         elif [[ "$test_not_skipped" -eq 0 ]]; then
@@ -150,24 +176,23 @@ spec:
       script: |
         #!/usr/bin/env bash
 
-        UPLOAD_FILE=sast_snyk_check_out.sarif
-        MEDIA_TYPE=application/sarif+json
+        UPLOAD_FILES="sast_snyk_check_out.sarif excluded-findings.json"
+        
+        for UPLOAD_FILE in ${UPLOAD_FILES}; do
+            if [ ! -f "${UPLOAD_FILE}" ]; then
+              echo "No ${UPLOAD_FILE} exists. Skipping upload."
+              continue
+            fi
+            if [ "${UPLOAD_FILES}" == "excluded-findings.json" ]; then
+                MEDIA_TYPE=application/json
+            else
+                MEDIA_TYPE=application/sarif+json
+            fi
+            echo "Selecting auth"
+            select-oci-auth "${IMAGE_URL}" > "${HOME}/auth.json"
+            echo "Attaching to ${IMAGE_URL}"
+            oras attach --no-tty --registry-config "$HOME/auth.json" --artifact-type "${MEDIA_TYPE}" "${IMAGE_URL}" "${UPLOAD_FILE}:${MEDIA_TYPE}"
+        done
 
-        if [ -z "${IMAGE_URL}" ] || [ -z "${IMAGE_DIGEST}"  ]; then
-          echo 'No image-url or image-digest param provided. Skipping upload.'
-          exit 0;
-        fi
-
-        if [ ! -f "${UPLOAD_FILE}" ]; then
-          echo "No ${UPLOAD_FILE} exists. Skipping upload."
-          exit 0;
-        fi
-
-        echo "Selecting auth"
-        select-oci-auth $IMAGE_URL > $HOME/auth.json
-        echo "Attaching to ${IMAGE_URL} via the OCI 1.1 Referrers API"
-        oras attach --no-tty --registry-config "$HOME/auth.json" --distribution-spec v1.1-referrers-api --artifact-type "${MEDIA_TYPE}" "${IMAGE_URL}" "${UPLOAD_FILE}:${MEDIA_TYPE}"
-        echo "Attaching to ${IMAGE_URL} via the OCI 1.1 Referrers Tag"
-        oras attach --no-tty --registry-config "$HOME/auth.json" --distribution-spec v1.1-referrers-tag --artifact-type "${MEDIA_TYPE}" "${IMAGE_URL}" "${UPLOAD_FILE}:${MEDIA_TYPE}"
   workspaces:
   - name: workspace
