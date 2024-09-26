@@ -139,8 +139,8 @@ spec:
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
         (cd "$SOURCE_CODE_DIR" && csgrep --mode=json --embed-context=3 sast_snyk_check_out.json) \
-        csgrep --mode=json --strip-path-prefix="source/"  \
-        > sast_snyk_check_out_all_findings.json
+        | csgrep --mode=json --strip-path-prefix="source/"  \
+         > sast_snyk_check_out_all_findings.json
         
         echo "Results:"
         (set -x; csgrep --mode=evtstat sast_snyk_check_out_all_findings.json)
