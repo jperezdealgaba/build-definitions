@@ -129,8 +129,10 @@ spec:
         if [ "${IMP_FINDINGS_ONLY}" == "false" ]; then
           SEVERITY_THRESHOLD="low"
         fi
-        snyk code test $ARGS --severity-threshold=$SEVERITY_THRESHOLD "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output=sast_snyk_check_out.json 1>&2>> stdout.txt
+        set +e
+        snyk code test $ARGS --severity-threshold="$SEVERITY_THRESHOLD" "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output=sast_snyk_check_out.json 1>&2>> stdout.txt
         SNYK_EXIT_CODE=$?
+        set -e
         test_not_skipped=0
         SKIP_MSG="We found 0 supported files"
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
@@ -189,12 +191,12 @@ spec:
           note="Task $(context.task.name) success: Snyk code test found zero supported files."
           ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
         else
-          echo "sast-snyk-check test failed "
-          # cat stdout.txt
-          # note="Task $(context.task.name) failed: For details, check Tekton task log."
-          # ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
+          echo "sast-snyk-check test failed because of the following issues:"
+          cat stdout.txt
+          note="Task $(context.task.name) failed: For details, check Tekton task log."
+          ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
         fi
-        # echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
+        echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee $(results.TEST_OUTPUT.path)
 
     - name: upload
       image: quay.io/konflux-ci/oras:latest@sha256:f4b891ee3038a5f13cd92ff4f473faad5601c2434d1c6b9bccdfc134d9d5f820
