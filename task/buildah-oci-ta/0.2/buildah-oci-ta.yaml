@@ -195,6 +195,8 @@ spec:
         value: $(params.IMAGE_EXPIRES_AFTER)
       - name: SKIP_UNUSED_STAGES
         value: $(params.SKIP_UNUSED_STAGES)
+      - name: SOURCE_CODE_DIR
+        value: source
       - name: SQUASH
         value: $(params.SQUASH)
       - name: STORAGE_DRIVER
@@ -216,7 +218,7 @@ spec:
         name: workdir
   steps:
     - name: use-trusted-artifact
-      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:c91de1771397c5a6fde3cf0c642dd3478af5409e2d1980a3402f32b395f2d2a7
+      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:e0e457b6af10e44ff6b90208a9e69adc863a865e1c062c4cb84bf3846037d74d
       args:
         - use
         - $(params.SOURCE_ARTIFACT)=/var/workdir/source
@@ -251,7 +253,6 @@ spec:
           update-ca-trust
         fi
 
-        SOURCE_CODE_DIR=source
         if [ -e "$SOURCE_CODE_DIR/$CONTEXT/$DOCKERFILE" ]; then
           dockerfile_path="$(pwd)/$SOURCE_CODE_DIR/$CONTEXT/$DOCKERFILE"
         elif [ -e "$SOURCE_CODE_DIR/$DOCKERFILE" ]; then
@@ -273,8 +274,12 @@ spec:
           echo "Cannot find Dockerfile $DOCKERFILE"
           exit 1
         fi
-        if [ -n "$JVM_BUILD_WORKSPACE_ARTIFACT_CACHE_PORT_80_TCP_ADDR" ] && grep -q '^\s*RUN \(./\)\?mvn' "$dockerfile_path"; then
-          sed -i -e "s|^\s*RUN \(\(./\)\?mvn\)\(.*\)|RUN echo \"<settings><mirrors><mirror><id>mirror.default</id><url>http://$JVM_BUILD_WORKSPACE_ARTIFACT_CACHE_PORT_80_TCP_ADDR/v1/cache/default/0/</url><mirrorOf>*</mirrorOf></mirror></mirrors></settings>\" > /tmp/settings.yaml; \1 -s /tmp/settings.yaml \3|g" "$dockerfile_path"
+
+        dockerfile_copy=$(mktemp --tmpdir "$(basename "$dockerfile_path").XXXXXX")
+        cp "$dockerfile_path" "$dockerfile_copy"
+
+        if [ -n "$JVM_BUILD_WORKSPACE_ARTIFACT_CACHE_PORT_80_TCP_ADDR" ] && grep -q '^\s*RUN \(./\)\?mvn' "$dockerfile_copy"; then
+          sed -i -e "s|^\s*RUN \(\(./\)\?mvn\)\(.*\)|RUN echo \"<settings><mirrors><mirror><id>mirror.default</id><url>http://$JVM_BUILD_WORKSPACE_ARTIFACT_CACHE_PORT_80_TCP_ADDR/v1/cache/default/0/</url><mirrorOf>*</mirrorOf></mirror></mirrors></settings>\" > /tmp/settings.yaml; \1 -s /tmp/settings.yaml \3|g" "$dockerfile_copy"
           touch /var/lib/containers/java
         fi
 
@@ -309,7 +314,7 @@ spec:
         done
 
         BASE_IMAGES=$(
-          dockerfile-json "${BUILD_ARG_FLAGS[@]}" "$dockerfile_path" |
+          dockerfile-json "${BUILD_ARG_FLAGS[@]}" "$dockerfile_copy" |
             jq -r '.Stages[] | select(.From | .Stage or .Scratch | not) | .BaseName | select(test("^oci-archive:") | not)'
         )
 
@@ -351,7 +356,7 @@ spec:
           sed -E -i \
               -e 'H;1h;$!d;x' \
               -e 's@^\s*(run((\s|\\\n)+-\S+)*(\s|\\\n)+)@\1. /cachi2/cachi2.env \&\& \\\n    @igM' \
-              "$dockerfile_path"
+              "$dockerfile_copy"
           echo "Prefetched content will be made available"
 
           prefetched_repo_for_my_arch="/tmp/cachi2/output/deps/rpm/$(uname -m)/repos.d/cachi2.repo"
@@ -412,15 +417,18 @@ spec:
           done < <(find $ADDITIONAL_SECRET_TMP -maxdepth 1 -type f -exec basename {} \;)
         fi
 
+        # Prevent ShellCheck from giving a warning because 'image' is defined and 'IMAGE' is not.
+        declare IMAGE
+
         unshare -Uf $UNSHARE_ARGS --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 -w ${SOURCE_CODE_DIR}/$CONTEXT -- buildah build \
           $VOLUME_MOUNTS \
           "${BUILDAH_ARGS[@]}" \
           "${LABELS[@]}" \
           --tls-verify=$TLSVERIFY --no-cache \
           --ulimit nofile=4096:4096 \
-          -f "$dockerfile_path" -t $IMAGE .
+          -f "$dockerfile_copy" -t "$IMAGE" .
 
-        container=$(buildah from --pull-never $IMAGE)
+        container=$(buildah from --pull-never "$IMAGE")
         buildah mount $container | tee /shared/container_path
         # delete symlinks - they may point outside the container rootfs, messing with SBOM scanners
         find $(cat /shared/container_path) -xtype l -delete
@@ -459,9 +467,9 @@ spec:
           name: shared
       script: |
         echo "Running syft on the source directory"
-        syft dir:/var/workdir/source --output cyclonedx-json=/var/workdir/sbom-source.json
+        syft dir:"/var/workdir/$SOURCE_CODE_DIR/$CONTEXT" --output cyclonedx-json="/var/workdir/sbom-source.json"
         echo "Running syft on the image filesystem"
-        syft dir:$(cat /shared/container_path) --output cyclonedx-json=/var/workdir/sbom-image.json
+        syft dir:"$(cat /shared/container_path)" --output cyclonedx-json="/var/workdir/sbom-image.json"
       computeResources:
         limits:
           cpu: "2"
