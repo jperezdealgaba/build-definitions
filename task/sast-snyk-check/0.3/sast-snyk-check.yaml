@@ -96,6 +96,8 @@ spec:
         # shellcheck source=/dev/null
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
+        
+        echo 'THE PROJECT_NAME VARIABLE HAS VALUE: "${PROJECT_NAME}"'
 
         # Installation of Red Hat certificates for cloning Red Hat internal repositories
         ca_bundle=/mnt/trusted-ca/ca-bundle.crt
@@ -140,7 +142,7 @@ spec:
         (cd "$SOURCE_CODE_DIR" && csgrep --mode=json --embed-context=3 "$(workspaces.workspace.path)"/hacbs/"$(context.task.name)"/sast_snyk_check_out.json) \
           | csgrep --mode=json --strip-path-prefix="source/"  \
           > sast_snyk_check_out_all_findings.json
-
+  
         echo "Results:"
         (set -x; csgrep --mode=evtstat sast_snyk_check_out_all_findings.json)
 
