@@ -46,10 +46,6 @@ spec:
     - name: PROJECT_NAME
       type: string
       description: Name-Version-Release (NVR) of the scanned project, used to find path exclusions (it is optional)
-      default:
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.labels[appstudio.openshift.io/component]
     - name: RECORD_EXCLUDED
       type: string
       description: Write excluded records in file. Useful for auditing (defaults to false).
@@ -89,7 +85,9 @@ spec:
         - name: KFP_GIT_URL
           value: $(params.KFP_GIT_URL)
         - name: PROJECT_NAME
-          value: $(params.PROJECT_NAME)
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels[appstudio.openshift.io/component]
         - name: RECORD_EXCLUDED
           value: $(params.RECORD_EXCLUDED)
       script: |
