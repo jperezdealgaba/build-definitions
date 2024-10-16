@@ -43,10 +43,10 @@ spec:
       description: URL from repository to download known false positives files
       # FIXME: Red Hat internal projects will default to https://gitlab.cee.redhat.com/osh/known-false-positives.git when KONFLUX-4530 is resolved
       default: ""
-    - name: PROJECT_NAME
+    - name: PROJECT_NVR
       type: string
       description: Name-Version-Release (NVR) of the scanned project, used to find path exclusions (it is optional)
-      default: ""
+      default: metadata.labels['labels.appstudio.openshift.io/component']
     - name: RECORD_EXCLUDED
       type: string
       description: Write excluded records in file. Useful for auditing (defaults to false).
@@ -85,10 +85,12 @@ spec:
           value: $(params.IMP_FINDINGS_ONLY)
         - name: KFP_GIT_URL
           value: $(params.KFP_GIT_URL)
-        - name: PROJECT_NAME
+        - name: PROJECT_NVR
           valueFrom:
             fieldRef:
               fieldPath: metadata.labels['appstudio.openshift.io/component']
+        - name: PROJECT_NAME
+          value: $(params.PROJECT_NAME)
         - name: RECORD_EXCLUDED
           value: $(params.RECORD_EXCLUDED)
       script: |
@@ -162,7 +164,9 @@ spec:
             --kfp-git-url="${KFP_GIT_URL}"
           )
 
-          if [[ -n "${PROJECT_NAME}" ]]; then
+          if [[ -n "${PROJECT_NVR}" ]]; then
+            CMD+=(--project-nvr="${PROJECT_NVR}")
+          else
             CMD+=(--project-nvr="${PROJECT_NAME}")
           fi
 
