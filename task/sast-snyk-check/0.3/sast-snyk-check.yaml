@@ -97,7 +97,7 @@ spec:
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
         
-        echo 'THE PROJECT_NAME VARIABLE HAS VALUE: "${PROJECT_NAME}"'
+        echo "THE PROJECT_NAME VARIABLE HAS VALUE: ${PROJECT_NAME}"
 
         # Installation of Red Hat certificates for cloning Red Hat internal repositories
         ca_bundle=/mnt/trusted-ca/ca-bundle.crt
