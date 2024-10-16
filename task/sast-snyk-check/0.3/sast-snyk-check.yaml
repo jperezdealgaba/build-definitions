@@ -46,7 +46,7 @@ spec:
     - name: PROJECT_NAME
       type: string
       description: Name-Version-Release (NVR) of the scanned project, used to find path exclusions (it is optional)
-      default: metadata.labels['labels.appstudio.openshift.io/component']
+      default: ""
     - name: RECORD_EXCLUDED
       type: string
       description: Write excluded records in file. Useful for auditing (defaults to false).
@@ -89,6 +89,11 @@ spec:
           value: $(params.PROJECT_NAME)
         - name: RECORD_EXCLUDED
           value: $(params.RECORD_EXCLUDED)
+        - name: COMPONENT_LABEL
+          value:
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['appstudio.openshift.io/component']
       script: |
         #!/usr/bin/env bash
 
@@ -99,6 +104,12 @@ spec:
         
         echo "hi"
         echo "THE PROJECT_NAME VARIABLE HAS VALUE: ${PROJECT_NAME}"
+        
+        if [[ ! -n "${PROJECT_NAME}" ]]; then
+            PROJECT_NAME = ${COMPONENT_LABEL}
+        fi
+        
+        echo "THE PROJECT_NAME VARIABLE AFTER ASSIGNMENT HAS VALUE: ${PROJECT_NAME}"
 
         # Installation of Red Hat certificates for cloning Red Hat internal repositories
         ca_bundle=/mnt/trusted-ca/ca-bundle.crt
@@ -158,18 +169,13 @@ spec:
             csfilter-kfp
             --verbose
             --kfp-git-url="${KFP_GIT_URL}"
+            --project-nvr="${PROJECT_NAME}
           )
-
-          if [[ -n "${PROJECT_NVR}" ]]; then
-            CMD+=(--project-nvr="${PROJECT_NVR}")
-          else
-            CMD+=(--project-nvr="${PROJECT_NAME}")
-          fi
 
           if [ "${RECORD_EXCLUDED}" == "true" ]; then
             CMD+=(--record-excluded="excluded-findings.json")
           fi
-
+          
           set +e
           "${CMD[@]}" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
           status=$?
