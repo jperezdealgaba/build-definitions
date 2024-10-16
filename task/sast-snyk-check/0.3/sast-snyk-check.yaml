@@ -105,7 +105,7 @@ spec:
         echo "THE PROJECT_NAME VARIABLE HAS VALUE: ${PROJECT_NAME}"
         
         if [[ ! -n "${PROJECT_NAME}" ]]; then
-            PROJECT_NAME = ${COMPONENT_LABEL}
+            PROJECT_NAME=${COMPONENT_LABEL}
         fi
         
         echo "THE PROJECT_NAME VARIABLE AFTER ASSIGNMENT HAS VALUE: ${PROJECT_NAME}"
