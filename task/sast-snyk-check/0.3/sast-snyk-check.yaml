@@ -168,7 +168,7 @@ spec:
             csfilter-kfp
             --verbose
             --kfp-git-url="${KFP_GIT_URL}"
-            --project-nvr="${PROJECT_NAME}
+            --project-nvr="${PROJECT_NAME}"
           )
 
           if [ "${RECORD_EXCLUDED}" == "true" ]; then
