@@ -90,10 +90,9 @@ spec:
         - name: RECORD_EXCLUDED
           value: $(params.RECORD_EXCLUDED)
         - name: COMPONENT_LABEL
-          value:
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.labels['appstudio.openshift.io/component']
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['appstudio.openshift.io/component']
       script: |
         #!/usr/bin/env bash
 
