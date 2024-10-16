@@ -88,7 +88,7 @@ spec:
         - name: PROJECT_NAME
           valueFrom:
             fieldRef:
-              fieldPath: metadata.labels[appstudio.openshift.io/component]
+              fieldPath: metadata.labels['appstudio.openshift.io/component']
         - name: RECORD_EXCLUDED
           value: $(params.RECORD_EXCLUDED)
       script: |
