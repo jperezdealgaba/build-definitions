@@ -45,7 +45,7 @@ spec:
       default: ""
     - name: PROJECT_NAME
       type: string
-      description: Name-Version-Release (NVR) of the scanned project, used to find path exclusions (it is optional)
+      description: Name of the scanned project, used to find path exclusions. By default, the Konflux component name will be used.
       default: ""
     - name: RECORD_EXCLUDED
       type: string
@@ -100,15 +100,12 @@ spec:
         # shellcheck source=/dev/null
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
-        
-        echo "hi"
-        echo "THE PROJECT_NAME VARIABLE HAS VALUE: ${PROJECT_NAME}"
-        
-        if [[ ! -n "${PROJECT_NAME}" ]]; then
+
+        if [[ -z "${PROJECT_NAME}" ]]; then
             PROJECT_NAME=${COMPONENT_LABEL}
         fi
-        
-        echo "THE PROJECT_NAME VARIABLE AFTER ASSIGNMENT HAS VALUE: ${PROJECT_NAME}"
+
+        echo "The PROJECT_NAME used is: ${PROJECT_NAME}"
 
         # Installation of Red Hat certificates for cloning Red Hat internal repositories
         ca_bundle=/mnt/trusted-ca/ca-bundle.crt
@@ -142,7 +139,7 @@ spec:
         set +e
         # We do want to expand ARGS (it can be multiple CLI flags, not just one)
         # shellcheck disable=SC2086
-        snyk code test $ARGS --severity-threshold="$SEVERITY_THRESHOLD" "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output=sast_snyk_check_out.json 1>&2>> stdout.txt
+        snyk code test $ARGS --severity-threshold="$SEVERITY_THRESHOLD" "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output="${SOURCE_CODE_DIR}/sast_snyk_check_out.json" 1>&2>> stdout.txt
         SNYK_EXIT_CODE=$?
         set -e
         test_not_skipped=0
@@ -150,12 +147,12 @@ spec:
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
-        (cd "$SOURCE_CODE_DIR" && csgrep --mode=json --embed-context=3 "$(workspaces.workspace.path)"/hacbs/"$(context.task.name)"/sast_snyk_check_out.json) \
+        csgrep --mode=json --embed-context=3 "${SOURCE_CODE_DIR}/sast_snyk_check_out.json \
           | csgrep --mode=json --strip-path-prefix="source/"  \
           > sast_snyk_check_out_all_findings.json
-  
+
         echo "Results:"
-        (set -x; csgrep --mode=evtstat sast_snyk_check_out_all_findings.json)
+        (set -x && csgrep --mode=evtstat sast_snyk_check_out_all_findings.json)
 
         # We check if the KFP_GIT_URL variable is set to apply the filters or not
         if [[ -z "${KFP_GIT_URL}" ]]; then
@@ -174,7 +171,7 @@ spec:
           if [ "${RECORD_EXCLUDED}" == "true" ]; then
             CMD+=(--record-excluded="excluded-findings.json")
           fi
-          
+
           set +e
           "${CMD[@]}" sast_snyk_check_out_all_findings.json > filtered_sast_snyk_check_out.json
           status=$?
@@ -186,7 +183,7 @@ spec:
             echo "Message: Succeed to filter known false positives" >&2
           fi
           echo "Results after filtering:"
-          (set -x; csgrep --mode=evtstat filtered_sast_snyk_check_out.json)
+          (set -x && csgrep --mode=evtstat filtered_sast_snyk_check_out.json)
         fi
 
         csgrep --mode=sarif filtered_sast_snyk_check_out.json > sast_snyk_check_out.sarif
