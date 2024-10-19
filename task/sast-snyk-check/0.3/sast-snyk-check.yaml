@@ -139,7 +139,7 @@ spec:
         set +e
         # We do want to expand ARGS (it can be multiple CLI flags, not just one)
         # shellcheck disable=SC2086
-        snyk code test $ARGS --severity-threshold="$SEVERITY_THRESHOLD" "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output="${SOURCE_CODE_DIR}/sast_snyk_check_out.json" 1>&2>> stdout.txt
+        snyk code test $ARGS --severity-threshold="$SEVERITY_THRESHOLD" "$SOURCE_CODE_DIR" --max-depth=1 --sarif-file-output="${SOURCE_CODE_DIR}"/sast_snyk_check_out.json 1>&2>> stdout.txt
         SNYK_EXIT_CODE=$?
         set -e
         test_not_skipped=0
@@ -147,7 +147,7 @@ spec:
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
-        csgrep --mode=json --embed-context=3 "${SOURCE_CODE_DIR}/sast_snyk_check_out.json \
+        csgrep --mode=json --embed-context=3 "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json \
           | csgrep --mode=json --strip-path-prefix="source/"  \
           > sast_snyk_check_out_all_findings.json
 
