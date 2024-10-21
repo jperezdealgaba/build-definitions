@@ -147,7 +147,7 @@ spec:
         grep -q "$SKIP_MSG" stdout.txt || test_not_skipped=$?
 
         # In order to generate csdiff/v1, we need to add the whole path of the source code as Snyk only provides an URI to embed the context
-        csgrep --mode=json --embed-context=3 "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json \
+        (cd  "${SOURCE_CODE_DIR}" && csgrep --mode=json --embed-context=3 "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json) \
           | csgrep --mode=json --strip-path-prefix="source/"  \
           > sast_snyk_check_out_all_findings.json
 
