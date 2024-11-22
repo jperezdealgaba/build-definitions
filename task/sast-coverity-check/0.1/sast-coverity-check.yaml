@@ -248,6 +248,8 @@ spec:
             "TypeScript"
         )
         
+        cat "${COVERITY_DIR}/build-log.txt"
+        
         u_count_total=0
         u_count_total_succ=0
         for lang in "${COV_SUPPORTED_LANGUAGES[@]}"; do
