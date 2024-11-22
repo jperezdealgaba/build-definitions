@@ -249,7 +249,8 @@ spec:
         )
         
         set -x
-        tree /var/tmp/coverity/
+        ls -la /var/tmp/coverity/
+        ls -la /var/tmp/coverity/output
         ls -la "${COVERITY_DIR}/"
         cat "${COVERITY_DIR}/build-log.txt"
         set +x
