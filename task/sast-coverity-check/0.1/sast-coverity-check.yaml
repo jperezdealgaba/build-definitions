@@ -248,8 +248,10 @@ spec:
             "TypeScript"
         )
         
+        set -x
         ls -la "${COVERITY_DIR}/
         cat "${COVERITY_DIR}/build-log.txt"
+        set +x
         
         u_count_total=0
         u_count_total_succ=0
