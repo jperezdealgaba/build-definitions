@@ -229,8 +229,55 @@ spec:
           echo "Results after filtering:"
           (set -x $$ csgrep --mode=evtstat filtered_sast_coverity_buildless_check_all_findings.json)
         fi
+        
+        # Generation of scan stats        
+  
+        # Supported languages
+        COV_SUPPORTED_LANGUAGES=(
+            "C/C++"
+            "C#"
+            "CUDA"
+            "Go"
+            "Java"
+            "JavaScript"
+            "JSP"
+            "Objective-C/C++"
+            "PHP"
+            "Python"
+            "Ruby"
+            "TypeScript"
+        )
+        
+        u_count_total=0
+        u_count_total_succ=0
+        for lang in "${COV_SUPPORTED_LANGUAGES[@]}"; do
+            grep_output=$(grep " ${lang} compilation units (.*%) .* are ready for analysis$" "${COVERITY_DIR}/build-log.txt" 2>/dev/null)
+            if [[ $? -eq 0 ]]; then
+                build_status=$(echo "$grep_output" | tail -n 1 | sed "s/^[^>]*> //")
+                u_count=$(echo "$build_status" | sed -n "s/^[^0-9]*\([0-9]\+\) ${lang//+/\\+} .*$/\1/p")
+                u_ratio=$(echo "$build_status" | sed -n "s/^.* (\([0-9]\+\)%).*$/\1/p")
+                
+                u_count_total_succ=$((u_count_total_succ + u_count))
+                if [[ $u_ratio -gt 0 ]]; then
+                    u_count_total=$((u_count_total + (u_count * 100 / u_ratio)))
+                else
+                    u_count_total=$((u_count_total + (u_count * 150)))
+                fi
+            fi
+        done
+        
+        # Check results and calculate total ratio
+        if [[ $u_count_total_succ -le 0 ]]; then
+            echo "No successful compilation units found."
+            exit 1
+        fi
+        
+        u_ratio_total=$((u_count_total_succ * 100 / u_count_total))
 
-        csgrep --mode=sarif filtered_sast_coverity_buildless_check_all_findings.json > "$(workspaces.workspace.path)"/coverity-results.sarif
+        csgrep --mode=sarif --set-scan-prop cov-compilation-unit-ratio:"${u_ratio_total}" \
+                --set-scan-prop cov-compilation-unit-ratio:"${u_count_total}" \
+                filtered_sast_coverity_buildless_check_all_findings.json > 
+                "$(workspaces.workspace.path)"/coverity-results.sarif
 
         if [[ -z "$(csgrep --mode=evtstat filtered_sast_coverity_buildless_check_all_findings.json)" ]]; then
           note="Task $(context.task.name) success: No finding was detected"
