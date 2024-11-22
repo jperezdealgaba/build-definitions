@@ -251,8 +251,9 @@ spec:
         set -x
         ls -la /var/tmp/coverity/
         ls -la "${COVERITY_DIR}/output"
-        ls -la "${COVERITY_DIR}/"
+        cat "${COVERITY_DIR}/capture-files-log.txt"
         cat "${COVERITY_DIR}/build-log.txt"
+        
         set +x
         
         u_count_total=0
