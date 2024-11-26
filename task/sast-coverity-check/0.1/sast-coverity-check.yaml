@@ -250,7 +250,7 @@ spec:
         
         set -x
         ls -la "${COVERITY_DIR}"
-        cat "${COVERITY_DIR}/coverity-cli-log.txt"
+        cat "${COVERITY_DIR}/coverity-cli/coverity-cli-log.txt"
         set +x
         
         u_count_total=0
