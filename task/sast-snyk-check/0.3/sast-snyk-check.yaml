@@ -155,6 +155,7 @@ spec:
           for path in "${paths[@]}"; do
             (cd "${SOURCE_CODE_DIR}" && snyk ignore --file-path=source/"$path")
           done
+          cat ${SOURCE_CODE_DIR}/.snyk
         fi
 
         set +e
