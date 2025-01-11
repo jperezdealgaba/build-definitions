@@ -224,6 +224,9 @@ spec:
           total_files=${total_files:-0}
           supported_files=${supported_files:-0}
 
+          echo "$total_files"
+          echo "$supported_files"
+
           coverage_ratio=0
           if (( total_files > 0 )); then
               coverage_ratio=$((supported_files * 100 / total_files))
