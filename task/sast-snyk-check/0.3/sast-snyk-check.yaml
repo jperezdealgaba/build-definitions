@@ -151,7 +151,7 @@ spec:
 
         # We ignore files using snyk ignore if the user set up the IGNORE variable
         if [[ -n "${IGNORE_FILE_PATHS}" ]]; then
-          paths="(${IGNORE_FILE_PATHS//,/ })" # Split by comma into an array
+          paths="${IGNORE_FILE_PATHS//,/ }" # Split by comma into an array
           cd "${SOURCE_CODE_DIR}"
           for path in "${paths[@]}"; do
             snyk ignore --file-path=source/$path 
