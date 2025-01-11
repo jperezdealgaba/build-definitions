@@ -216,9 +216,10 @@ spec:
           total_files=$(jq '[.runs[0].properties.coverage[].files] | add' "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json)
           supported_files=$(jq '[.runs[0].properties.coverage[] | select(.type == "SUPPORTED") | .files] | add' "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json)
           
+          cat "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json
           echo "$total_files"
           echo "$supported_files"
-          
+
           # We make sure the values are 0 if no supported/total files are found
           total_files=${total_files:-0}
           supported_files=${supported_files:-0}
