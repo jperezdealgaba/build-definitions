@@ -221,8 +221,13 @@ spec:
           echo "$supported_files"
 
           # We make sure the values are 0 if no supported/total files are found
-          total_files=${total_files:-0}
-          supported_files=${supported_files:-0}
+          if [ "$total_files" = "null" ] || [ -z "$total_files" ]; then
+            total_files=0
+          fi
+
+          if [ "$supported_files" = "null" ] || [ -z "$supported_files" ]; then
+            supported_files=0
+          fi
 
           echo "$total_files"
           echo "$supported_files"
