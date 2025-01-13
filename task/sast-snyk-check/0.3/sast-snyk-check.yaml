@@ -60,7 +60,7 @@ spec:
     - name: IGNORE_FILE_PATHS
       type: string
       description: Directories or files to be excluded from Snyk scan (Comma-separated). Useful to split the directories of a git repo across multiple components.
-      default: "DVWA/,osh-version-check/"
+      default: ""
   volumes:
     - name: snyk-secret
       secret:
@@ -150,15 +150,13 @@ spec:
         fi
 
         # We ignore files using snyk ignore if the user set up the IGNORE variable
-        if [[ -n "${IGNORE_FILE_PATHS}" ]]; then
-          paths=(${IGNORE_FILE_PATHS//,/ }) # Split by comma into an array
+        IGNORE_FILES=$( 
           cd "${SOURCE_CODE_DIR}"
-          for path in "${paths[@]}"; do
-            echo $path
-            (cd ${SOURCE_CODE_DIR} && snyk ignore --file-path=source/$path)
-          done
-          cat ${SOURCE_CODE_DIR}/.snyk
-        fi
+          IFS="," 
+          for path in $IGNORE_FILE_PATHS; do
+            snyk ignore --file-path="source/$path"
+          done 
+        )
 
         set +e
         # We do want to expand ARGS (it can be multiple CLI flags, not just one)
@@ -215,10 +213,6 @@ spec:
 
           total_files=$(jq '[.runs[0].properties.coverage[].files] | add' "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json)
           supported_files=$(jq '[.runs[0].properties.coverage[] | select(.type == "SUPPORTED") | .files] | add' "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json)
-          
-          cat "${SOURCE_CODE_DIR}"/sast_snyk_check_out.json
-          echo "$total_files"
-          echo "$supported_files"
 
           # We make sure the values are 0 if no supported/total files are found
           if [ "$total_files" = "null" ] || [ -z "$total_files" ]; then
@@ -228,9 +222,6 @@ spec:
           if [ "$supported_files" = "null" ] || [ -z "$supported_files" ]; then
             supported_files=0
           fi
-
-          echo "$total_files"
-          echo "$supported_files"
 
           coverage_ratio=0
           if (( total_files > 0 )); then
