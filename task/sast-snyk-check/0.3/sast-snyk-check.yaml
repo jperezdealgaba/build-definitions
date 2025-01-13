@@ -149,21 +149,10 @@ spec:
           SEVERITY_THRESHOLD="low"
         fi
 
-<<<<<<< HEAD
         # We ignore files using snyk ignore if the user set up the IGNORE_FILE_PATHS variable.
         (cd "${SOURCE_CODE_DIR}" && IFS="," && for path in $IGNORE_FILE_PATHS; do
           snyk ignore --file-path="source/$path"
         done)
-=======
-        # We ignore files using snyk ignore if the user set up the IGNORE variable
-        IGNORE_FILES=$( 
-          cd "${SOURCE_CODE_DIR}"
-          IFS="," 
-          for path in $IGNORE_FILE_PATHS; do
-            snyk ignore --file-path="source/$path"
-          done 
-        )
->>>>>>> 75ca76d47ebf71e4ae94b408f86a1c1782067f7d
 
         set +e
         # We do want to expand ARGS (it can be multiple CLI flags, not just one)
