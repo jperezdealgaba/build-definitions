@@ -1,0 +1,95 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: "konflux"
+  name: rh-sdlc-check
+spec:
+  description: >-
+    This task is responsible for check if the built product is compliant with RH-SDLC.
+  results:
+    - description: Tekton task test output.
+      name: TEST_OUTPUT
+  params:
+    - name: JIRA_EPIC_KEY
+      description: Epic key of Jira tracker feature containing Jira trackers
+      default: "SDLC-3214"
+    - name: JIRA_TOKEN
+      description: Name of secret which contains Jira token.
+      default: jira-token
+  volumes:
+    - name: jira-token
+      secret:
+        secretName: $(params.JIRA_TOKEN)
+        optional: true
+  steps:
+    - name: sdlc-check
+      image: quay.io/konflux-ci/konflux-test:v1.4.12@sha256:b42202199805420527c2552dea22b02ab0f051b79a4b69fbec9a77f8832e5623
+      # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
+      # the cluster will set imagePullPolicy to IfNotPresent
+      workingDir: $(workspaces.workspace.path)/hacbs/$(context.task.name)
+      volumeMounts:
+        - name: jira-token
+          mountPath: "/etc/secrets"
+          readOnly: true
+      env:
+        - name: JIRA_EPIC_KEY
+          value: $(params.JIRA_EPIC_KEY)
+        - name: JIRA_TOKEN
+          value: $(params.JIRA_TOKEN)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        . /utils.sh
+        trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
+        
+        if [[ -z "${JIRA_EPIC_KEY}" ]]; then
+          note="Task $(context.task.name) skipped: If you wish to use the sdlc-check task, please create a parameter named JIRA_EPIC_KEY feature containing Jira trackers for the product"
+          TEST_OUTPUT=$(make_result_json -r SKIPPED -t "$note")
+          echo "${TEST_OUTPUT}" | tee "$(results.TEST_OUTPUT.path)"
+          exit 0
+        else
+          echo "JIRA_KEY parameter has value: ${JIRA_EPIC_KEY}"
+        fi
+        
+        JIRA_TOKEN_PATH="/etc/secrets/jira-token"
+        if [ -f "${JIRA_TOKEN_PATH}" ] && [ -s "${JIRA_TOKEN_PATH}" ]; then
+          # JIRA token is provided
+          JIRA_TOKEN="$(cat ${JIRA_TOKEN_PATH})"
+          export JIRA_TOKEN
+        else
+          note="Task $(context.task.name) skipped: If you wish to use the SDLC check task, please create a secret name jira-token with the key "jira-token" containing the Jira token."
+          TEST_OUTPUT=$(make_result_json -r SKIPPED -t "$note")
+          echo "${TEST_OUTPUT}" | tee "$(results.TEST_OUTPUT.path)"
+          exit 0
+        fi
+        
+        # Do Jira request
+        curl -X GET -H "Authorization: Bearer ${JIRA_TOKEN}" \
+        -H "Content-Type: application/json" \
+        "https://issues.redhat.com/rest/api/2/search?jql=project=SDLC%20AND%20%22Parent%20Link%22%20%3D%20${JIRA_EPIC_KEY}" \
+        > jira_query.json
+        
+        jq '[.issues[] | {summary: .fields.summary, status: .fields.status.name}]' jira_query.json > results.json
+        jq '[.[] | select(.status != "Closed")]' results.json > filtered_results.json
+        
+        # We convert to generated JSON to SARIF so it is parsed by the utils.sh script to have a better UX
+        jq -c '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0","runs":[{"tool":{"driver":{"name":"SDLC-Checker","informationUri":"https://example.com","rules":[]}},"results":[.[]|{"ruleId":"SEC-001","message":{"text":.summary},"level":"error","locations":[]}]}]}' filtered_results.json > output.sarif
+        
+        if jq -e 'length > 0' filtered_results.json > /dev/null; then
+          echo "In order to fix the following problems, feel free to contact the #help-psrd-sse Slack channel"
+          TEST_OUTPUT=
+          parse_test_output "$(context.task.name)" sarif output.sarif || true
+          note="Task $(context.task.name) failed: For details, check Tekton task log."
+        else
+          echo "All SDLC controls are complete!"
+          note="Task $(context.task.name) success: No finding was detected"
+          ERROR_OUTPUT=$(make_result_json -r SUCCESS -t "$note")
+        fi
+        
+        echo "${TEST_OUTPUT:-${ERROR_OUTPUT}}" | tee "$(results.TEST_OUTPUT.path)"
+  workspaces:
+  - name: workspace
